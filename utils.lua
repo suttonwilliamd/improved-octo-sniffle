@@ -26,3 +26,8 @@ function utils.arrayRemove(t, fnKeep)
     end
     return t
 end
+
+-- utils.lua
+function utils.drawRoundedRect(rect, radius)
+    love.graphics.rectangle("fill", rect.x, rect.y, rect.width, rect.height, radius)
+end
