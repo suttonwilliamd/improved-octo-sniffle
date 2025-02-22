@@ -1,170 +1,202 @@
 Shop = {
-    buttons = {
-        main = {x = 20, y = 0, width = 100, height = 50},
-        upgrade = {x = 0, y = 0, width = 200, height = 60}
-    },
     colors = {
-        background = {0.4, 0.4, 0.4},
-        buttonActive = {0.3, 0.25, 0.3},
-        buttonInactive = {0.15, 0.25, 0.3}
+        background = {0.15, 0.15, 0.2, 0.95},
+        buttonActive = {0.3, 0.5, 0.4},
+        buttonInactive = {0.2, 0.2, 0.25},
+        textActive = {0.9, 0.9, 0.9},
+        textInactive = {0.6, 0.6, 0.6}
     }
 }
 
 function Shop.init()
-    Shop.buttons.main.y = Game.screen.height - 70
+    -- Adaptive scaling with better breakpoints
+    local baseWidth = 1440  -- Higher reference width for better scaling
+    Game.uiScale = math.min(
+        math.max(Game.screen.width / baseWidth, 0.65),  -- More conservative minimum
+        1.0  -- Never exceed 100% scale
+    )
+    
+    -- Separate font scale for better text control
+    Game.fontScale = Game.uiScale * 0.9  -- 10% smaller than UI elements
+    
+    Shop.buttons = {
+        main = {
+            x = 0.02 * Game.screen.width,
+            y = 0.85 * Game.screen.height,
+            width = 0.2 * Game.screen.width,
+            height = 0.08 * Game.screen.height
+        }
+    }
 end
 
 function Shop.draw()
-    -- Shop toggle button
-    love.graphics.setColor(0.2, 0.2, 0.8)
-    love.graphics.rectangle("fill",
-        Shop.buttons.main.x,
-        Shop.buttons.main.y,
-        Shop.buttons.main.width,
-        Shop.buttons.main.height
-    )
+    -- Permanent UI with font scaling
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("SHOP", Shop.buttons.main.x + 10, Shop.buttons.main.y + 15)
-
-    -- Permanent UI
+    love.graphics.setNewFont(18 * Game.fontScale)
     love.graphics.print("Gold: " .. Player.gold, 10, 10)
-    love.graphics.print("Level: " .. Player.level, 10, 30)
-    love.graphics.print("Health: " .. math.floor(Player.health) .. "/" .. Player.maxHealth, 10, 90)
-    
-    -- XP Bar
-    local xpWidth = 200
-    local xpPercent = Player.xp / Player.xpToNextLevel
+    love.graphics.print("Lv." .. Player.level, 10, 30 * Game.fontScale)
+
+    -- XP Bar (size relative to font scale)
+    local xpHeight = 6 * Game.fontScale
+    local xpWidth = 0.3 * Game.screen.width
     love.graphics.setColor(0.3, 0.3, 0.3)
-    love.graphics.rectangle("fill", 10, 50, xpWidth, 15)
+    love.graphics.rectangle("fill", 10, 50 * Game.fontScale, xpWidth, xpHeight)
     love.graphics.setColor(0.2, 0.6, 1)
-    love.graphics.rectangle("fill", 10, 50, xpWidth * xpPercent, 15)
+    love.graphics.rectangle("fill", 10, 50 * Game.fontScale, xpWidth * (Player.xp/Player.xpToNextLevel), xpHeight)
+
+    -- Shop toggle button
+    local btn = Shop.buttons.main
+    love.graphics.setColor(0.3, 0.4, 0.6)
+    love.graphics.rectangle("fill", btn.x, btn.y, btn.width, btn.height, 5 * Game.uiScale)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("SHOP", btn.x, btn.y + btn.height/4, btn.width, "center", 0, Game.fontScale * 0.9)
 
     -- Shop window
     if Game.state.inShop then
-        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.setColor(0, 0, 0, 0.85)
         love.graphics.rectangle("fill", 0, 0, Game.screen.width, Game.screen.height)
         
-        local shopW = Game.screen.width * 0.8
-        local shopH = Game.screen.height * 0.7
+        local shopW = Game.screen.width * 0.85
+        local shopH = Game.screen.height * 0.75
+        local shopX = (Game.screen.width - shopW) * 0.5
+        local shopY = (Game.screen.height - shopH) * 0.5
+        
+        -- Window background
         love.graphics.setColor(Shop.colors.background)
-        love.graphics.rectangle("fill", 
-            (Game.screen.width - shopW)/2,
-            (Game.screen.height - shopH)/2,
-            shopW,
-            shopH
-        )
+        love.graphics.rectangle("fill", shopX, shopY, shopW, shopH, 12 * Game.uiScale)
+        love.graphics.setColor(0.3, 0.3, 0.4)
+        love.graphics.rectangle("line", shopX, shopY, shopW, shopH, 12 * Game.uiScale)
 
-        -- Upgrade buttons in 2 columns
-        local btnY = (Game.screen.height - shopH)/2 + 50
-        local btnW = shopW * 0.45
-        local btnH = 60
-        local btnSpacing = 80
-        
-        -- Left Column
-        Shop.drawUpgradeButton(
-            "Damage +"..Upgrades.stats.attackDamage.base.." ("..Upgrades.stats.attackDamage.currentCost.."g)", 
-            (Game.screen.width/2 - btnW) - 10, btnY, btnW, btnH, "attackDamage"
-        )
-        Shop.drawUpgradeButton(
-            "Defense +"..Upgrades.stats.defense.base.."% ("..Upgrades.stats.defense.currentCost.."g)", 
-            (Game.screen.width/2 - btnW) - 10, btnY + btnSpacing, btnW, btnH, "defense"
-        )
-        Shop.drawUpgradeButton(
-            "Regen +"..Upgrades.stats.regen.base.."/s ("..Upgrades.stats.regen.currentCost.."g)", 
-            (Game.screen.width/2 - btnW) - 10, btnY + btnSpacing*2, btnW, btnH, "regen"
-        )
-        
-        -- Right Column
-        Shop.drawUpgradeButton(
-            "Speed +"..Upgrades.stats.attackSpeed.base.." ("..Upgrades.stats.attackSpeed.currentCost.."g)", 
-            (Game.screen.width/2) + 10, btnY, btnW, btnH, "attackSpeed"
-        )
-        Shop.drawUpgradeButton(
-            "Crit +"..(Upgrades.stats.critChance.base*100).."% ("..Upgrades.stats.critChance.currentCost.."g)", 
-            (Game.screen.width/2) + 10, btnY + btnSpacing, btnW, btnH, "critChance"
-        )
-        
+        -- Title with separate scaling
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.setNewFont(24 * Game.fontScale)  -- Reduced base size
+        love.graphics.printf("UPGRADES", shopX, shopY + 20 * Game.fontScale, shopW, "center")
+
         -- Close button
-        Shop.drawButton("Close Shop", (Game.screen.width - btnW*2)/2, btnY + btnSpacing*3, btnW*2 + 20, btnH)
+        local closeSize = 40 * Game.uiScale
+        local closeX = shopX + shopW - closeSize - 15 * Game.uiScale
+        local closeY = shopY + 15 * Game.uiScale
+        
+        love.graphics.setColor(0.8, 0.2, 0.2)
+        love.graphics.rectangle("fill", closeX, closeY, closeSize, closeSize, 6 * Game.uiScale)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.setNewFont(28 * Game.fontScale)  -- Smaller X symbol
+        love.graphics.printf("×", closeX, closeY + closeSize/4, closeSize, "center")
+
+        -- Upgrade grid
+        local btnWidth = shopW * 0.42
+        local btnHeight = 80 * Game.uiScale  -- Reduced button height
+        local verticalSpacing = 15 * Game.uiScale
+        local startY = shopY + 60 * Game.uiScale
+
+        -- Left Column
+        Shop.drawUpgradeCompact("Damage", "attackDamage", shopX + shopW*0.04, startY, btnWidth, btnHeight)
+        Shop.drawUpgradeCompact("Defense", "defense", shopX + shopW*0.04, startY + (btnHeight + verticalSpacing), btnWidth, btnHeight)
+        Shop.drawUpgradeCompact("Regen", "regen", shopX + shopW*0.04, startY + 2*(btnHeight + verticalSpacing), btnWidth, btnHeight)
+
+        -- Right Column
+        Shop.drawUpgradeCompact("Atk Speed", "attackSpeed", shopX + shopW*0.54, startY, btnWidth, btnHeight)
+        Shop.drawUpgradeCompact("Crit %", "critChance", shopX + shopW*0.54, startY + (btnHeight + verticalSpacing), btnWidth, btnHeight)
+        Shop.drawUpgradeCompact("Game Speed", "gameSpeed", shopX + shopW*0.54, startY + 2*(btnHeight + verticalSpacing), btnWidth, btnHeight)
+
+
     end
 end
 
-function Shop.drawUpgradeButton(text, x, y, w, h, statType)
-    if not Upgrades.stats[statType] or not Player[statType] then
-        print("WARNING: Missing upgrade or player stat for:", statType)
-        return
-    end
-
-    local canBuy = Player.gold >= Upgrades.stats[statType].currentCost
-    love.graphics.setColor(canBuy and Shop.colors.buttonActive or Shop.colors.buttonInactive)
-    love.graphics.rectangle("fill", x, y, w, h)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print(text, x + 20, y + 20)
+function Shop.drawUpgradeCompact(title, statType, x, y, w, h)
+    local stat = Upgrades.stats[statType]
+    local canBuy = Player.gold >= stat.currentCost
     
-    -- Current stat value
-    local statValue = Player[statType]
-    local currentValue = ""
-    if statType == "critChance" then
-        currentValue = math.floor(statValue * 100) .. "%"
-    elseif statType == "defense" then
-        currentValue = math.floor(statValue) .. "%"
-    elseif statType == "regen" then
-        currentValue = string.format("%.1f HP/s", statValue)
-    else
-        currentValue = math.floor(statValue * 10)/10
-    end
-    love.graphics.print("Current: " .. currentValue, x + 20, y + 40)
+    -- Button background
+    love.graphics.setColor(canBuy and Shop.colors.buttonActive or Shop.colors.buttonInactive)
+    love.graphics.rectangle("fill", x, y, w, h, 8 * Game.uiScale)
+    love.graphics.setColor(0, 0, 0, 0.2)
+    love.graphics.rectangle("line", x, y, w, h, 8 * Game.uiScale)
+
+    -- Text elements
+    love.graphics.setColor(canBuy and Shop.colors.textActive or Shop.colors.textInactive)
+    
+    -- Title
+    love.graphics.setNewFont(18 * Game.fontScale)  -- Reduced from 28
+    love.graphics.print(title, x + 12 * Game.uiScale, y + 8 * Game.uiScale)
+
+    -- Current value
+    love.graphics.setColor(canBuy and {0.9,0.9,0.9} or {0.7,0.7,0.7})
+    love.graphics.setNewFont(14 * Game.fontScale)  -- Reduced from 18
+    local current = Shop.getFormattedStat(statType)
+    love.graphics.print(current, x + 12 * Game.uiScale, y + h - 24 * Game.uiScale)
+
+    -- Cost
+    love.graphics.setNewFont(16 * Game.fontScale)  -- Reduced from 24
+    local costText = stat.currentCost .. "g"
+    local textWidth = love.graphics.getFont():getWidth(costText)
+    love.graphics.setColor(canBuy and {1,1,0.8} or {0.6,0.6,0.5})
+    love.graphics.print(costText, x + w - textWidth - 12 * Game.uiScale, y + h/2 - 10 * Game.uiScale)
 end
 
-function Shop.drawButton(text, x, y, w, h)
-    love.graphics.setColor(Shop.colors.buttonActive)
-    love.graphics.rectangle("fill", x, y, w, h)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print(text, x + 20, y + 20)
+-- Rest of the file remains unchanged
+
+function Shop.getFormattedStat(statType)
+    -- Handle game speed special case
+    if statType == "gameSpeed" then
+        return string.format("%.1fx", Game.state.speedMultiplier)
+    end
+
+    local value = Player[statType]
+    if statType == "critChance" then return string.format("%.1f%%", value*100) end
+    if statType == "defense" then return string.format("%d%%", value) end
+    if statType == "regen" then return string.format("%.1f/s", value) end
+    return string.format("%.1f", value)
 end
 
 function Shop.handleTouch(id, x, y)
-    local tx = x
-    local ty = y
-    
-    if utils.pointInRect(tx, ty, Shop.buttons.main) then
+    -- Shop toggle
+    if utils.pointInRect(x, y, Shop.buttons.main) then
         Game.state.inShop = not Game.state.inShop
         return true
     end
 
     if Game.state.inShop then
-        local shopW = Game.screen.width * 0.8
-        local shopH = Game.screen.height * 0.7
-        local btnW = shopW * 0.45
-        local btnH = 60
-        local btnSpacing = 80
-        local firstBtnY = (Game.screen.height - shopH)/2 + 50
+        local shopW = Game.screen.width * 0.85
+        local shopH = Game.screen.height * 0.75
+        local shopX = (Game.screen.width - shopW) * 0.5
+        local shopY = (Game.screen.height - shopH) * 0.5
 
-        -- New grid-based touch detection
-        local buttons = {
-            {x = "left", y = 0, type = "attackDamage"},
-            {x = "left", y = 1, type = "defense"},
-            {x = "left", y = 2, type = "regen"},
-            {x = "right", y = 0, type = "attackSpeed"},
-            {x = "right", y = 1, type = "critChance"},
-            {y = 3, type = "close"}
+        -- Close button (exact match with draw code)
+        local closeSize = 40 * Game.uiScale
+        local closeX = shopX + shopW - closeSize - 15 * Game.uiScale
+        local closeY = shopY + 15 * Game.uiScale
+        if utils.pointInRect(x, y, {x=closeX, y=closeY, width=closeSize, height=closeSize}) then
+            Game.state.inShop = false
+            return true
+        end
+
+        -- Upgrade buttons (identical to visual calculations)
+        local btnWidth = shopW * 0.42
+        local btnHeight = 80 * Game.uiScale
+        local verticalSpacing = 15 * Game.uiScale
+        local startY = shopY + 60 * Game.uiScale  -- Matches draw code's Y start
+
+        -- Column definitions (mirroring draw positions)
+        local columns = {
+            {x = shopX + (shopW * 0.04), stats = {"attackDamage", "defense", "regen"}},
+            {x = shopX + (shopW * 0.54), stats = {"attackSpeed", "critChance", "gameSpeed"}}
         }
 
-        for _, btn in ipairs(buttons) do
-            local btnX = (btn.x == "left") and (Game.screen.width/2 - btnW - 10) or
-                       (btn.x == "right") and (Game.screen.width/2 + 10) or
-                       (Game.screen.width - btnW*2)/2
-            local btnYPos = firstBtnY + (btnSpacing * (btn.y or 0))
-            
-            if ty > btnYPos and ty < btnYPos + btnH and
-               tx > btnX and tx < btnX + btnW
-            then
-                if btn.type == "close" then
-                    Game.state.inShop = false
-                else
-                    Upgrades.purchaseStat(btn.type)
+        for _, col in ipairs(columns) do
+            for i, stat in ipairs(col.stats) do
+                -- Calculate button Y position identically to draw logic
+                local btnY = startY + ((i-1) * (btnHeight + verticalSpacing))
+                
+                -- Check touch boundaries (exact match with rendered button)
+                if x > col.x and x < col.x + btnWidth and
+                   y > btnY and y < btnY + btnHeight 
+                then
+                    if Player.gold >= Upgrades.stats[stat].currentCost then
+                        Upgrades.purchaseStat(stat)
+                    end
+                    return true
                 end
-                return true
             end
         end
     end
