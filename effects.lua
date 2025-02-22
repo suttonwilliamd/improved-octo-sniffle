@@ -1,5 +1,6 @@
 Effects = {
-    damageNumbers = {}
+    damageNumbers = {},
+    list = {}
 }
 
 function Effects.spawnDamageNumber(x, y, amount, isCrit)
@@ -12,7 +13,19 @@ function Effects.spawnDamageNumber(x, y, amount, isCrit)
         alpha = 1,
         scale = isCrit and 1.3 or 1
     })
-    print("Spawned damage number:", amount) -- Debug
+end
+
+function Effects.spawnDamageEffect(x, y, duration, damage)
+    table.insert(Effects.damageNumbers, {  -- Using existing damageNumbers system
+        x = x,
+        y = y,
+        text = "✴ " .. tostring(damage),
+        color = {0.4, 0.4, 0.9},
+        timer = duration,
+        alpha = 1,
+        scale = 0.8,
+        velocityY = -20
+    })
 end
 
 function Effects.spawnCritEffect(x, y)
@@ -25,7 +38,17 @@ function Effects.spawnCritEffect(x, y)
         alpha = 1,
         scale = 2
     })
-    print("Spawned crit effect") -- Debug
+end
+
+function Effects.spawnSpeedEffect(x, y)
+    table.insert(Effects.list, {
+        type = "speed",
+        x = x,
+        y = y,
+        timer = 1.0,
+        radius = 0,
+        color = {0.2, 0.8, 1, 0.9}
+    })
 end
 
 function Effects.update(dt)
@@ -51,4 +74,29 @@ function Effects.draw()
         love.graphics.pop()
     end
     love.graphics.setColor(1, 1, 1) -- Reset color
+end
+
+-- Add these to the Effects table in effects.lua
+function Effects.spawnShieldEffect(x, y)
+    table.insert(Effects.damageNumbers, {
+        x = x,
+        y = y,
+        text = "SHIELD+",
+        color = {0.2, 0.6, 1},
+        timer = 1.2,
+        alpha = 1,
+        scale = 1.5
+    })
+end
+
+function Effects.spawnHealEffect(x, y)
+    table.insert(Effects.damageNumbers, {
+        x = x,
+        y = y,
+        text = "HEAL+",
+        color = {0.4, 1, 0.4},
+        timer = 1.2,
+        alpha = 1,
+        scale = 1.5
+    })
 end
