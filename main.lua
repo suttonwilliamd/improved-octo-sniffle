@@ -29,7 +29,8 @@ function love.load()
             inShop = false,
             spawnTimer = 0,
             attackTimer = 0,
-            waveTransition = false
+            waveTransition = false,
+            speedMultiplier = 1.0  -- New speed control
         }
     }
     
@@ -47,28 +48,32 @@ function love.load()
 end
 
 function love.update(dt)
-    -- Apply regeneration when not in shop
-    if not Game.state.inShop and Player.health > 0 then
+    local scaledDt = dt * Game.state.speedMultiplier
+    
+    -- Apply regeneration when alive and not in shop
+    if not Game.state.inShop and not Player.isDead and Player.health > 0 then
         Player.health = math.min(Player.maxHealth, 
-            Player.health + (Player.regen * dt))
+            Player.health + (Player.regen * scaledDt))
     end
 
-    -- Only update game world when not in shop
-    if not Game.state.inShop then
-        Waves.update(dt)
-        Enemy.updateMovement(dt)
-        Player.autoAttack(dt)
-        Projectile.updateAll(dt)
+    -- Check for player death
+    Player.checkDeath()
 
-        -- Handle wave transitions
+    -- Only update game world when alive and not in shop
+    if not Game.state.inShop and not Player.isDead then
+        Waves.update(scaledDt)
+        Enemy.updateMovement(scaledDt)
+        Player.autoAttack(scaledDt)
+        Projectile.updateAll(scaledDt)
+
+        -- Handle wave transitions (without health reset)
         if Waves.enemiesRemaining == 0 and not Game.state.waveTransition then
             Game.state.waveTransition = true
-            Player.resetHealth()
             Waves.startNextWave()
         end
     end
 
-    Effects.update(dt)
+    Effects.update(scaledDt)
 end
 
 function love.draw()
@@ -80,10 +85,16 @@ function love.draw()
     
     -- UI Elements
     Shop.draw()
+    Player.drawHealth()
+    Player.drawDeathScreen()
     
     -- Wave counter
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Wave: " .. Waves.currentWave, Game.screen.width - 150, 10)
+    
+    -- Speed multiplier indicator
+    love.graphics.print("Speed: " .. string.format("%.1fx", Game.state.speedMultiplier), 
+        Game.screen.width - 150, 50)
     
     -- Next wave countdown
     if Waves.enemiesRemaining == 0 then
@@ -93,6 +104,11 @@ function love.draw()
 end
 
 function love.touchpressed(id, x, y)
+    if Game.state.showDeathScreen then
+        Player.init()
+        Game.state.showDeathScreen = false
+        return true
+    end
     Shop.handleTouch(id, x, y)
 end
 
@@ -103,5 +119,8 @@ function love.keypressed(key)
     end
     if key == 'r' then  -- Debug: test regeneration
         Player.health = 50
+    end
+    if key == 't' then  -- Debug: test speed
+        Game.state.speedMultiplier = math.min(2.0, Game.state.speedMultiplier + 0.1)
     end
 end
