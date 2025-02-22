@@ -6,70 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
 ### Added
-- Basic enemy health bars
-- Wave completion bonus gold
-- Visual indicators for critical hits
+- Damage number scaling for critical hits
 
 ### Changed
-- Increased base gold drop range (50-500 → 75-600)
-- Rebalanced late-game scaling
+- Improved boss teleportation logic
+
+## [0.3.0] - 2024-03-15
+### Added
+- Tiered boss system (Standard, Swarmlord, Phasebeast)
+- Elite enemies with modifier stacking
+- Cluster spawning mechanics (post-wave 15)
+- Progressive difficulty parameters
+- Boss warning animations
+- Damage effect system
+
+### Changed
+- Complete wave progression overhaul
+- Boss health scaling formula (1.8^tier)
+- Shop time decreases with wave progression
+- Unified enemy stat scaling framework
 
 ### Fixed
-- Memory leak in wave transitions
-- Rounding errors in defense calculations
-
+- Memory leak in long sessions
+- Defense calculation rounding errors
+- Boss ability timing desync
 
 ## [0.2.0] - 2024-02-15
-
 ### Added
-- Infinite wave scaling post-wave 5
-- Mobile touch input handling
-- Auto-save system (every 5 waves)
-- Basic particle effects
+- Infinite wave scaling
+- Mobile touch controls
+- Auto-save system
 
 ### Changed
-- Removed stat point requirement for upgrades
+- Removed stat point requirements
 - Revised wave difficulty curve
-- Improved projectile visuals
 
 ### Fixed
-- Upgrade cost reset on level up
-- Android screen scaling issues
+- Android screen scaling
 
 ## [0.1.0] - 2024-02-01
-
 ### Added
-- Core gameplay loop:
-  - Wave-based enemy spawning
-  - Gold collection system
-  - Upgrade shop with 3 initial upgrades:
-    - Attack Damage
-    - Attack Speed
-    - Critical Chance
-- Basic player progression:
-  - XP/level system
-  - Persistent stat upgrades
-- Minimal UI:
-  - Health bar
-  - Gold counter
-  - Wave display
+- Core wave system
+- Upgrade shop
+- XP/level progression
 
 ### Changed
-- Initial commit of core systems
-
-## Versioning Scheme
-
-- **MAJOR** version: Architectural changes
-- **MINOR** version: Feature additions
-- **PATCH** version: Bug fixes and balance
-
-## Types of Changes
-
-- **Added**: New features
-- **Changed**: Existing functionality updates
-- **Deprecated**: Soon-to-be removed features
-- **Removed**: Deleted features
-- **Fixed**: Bug corrections
-- **Security**: Vulnerability patches
+- Initial commit
