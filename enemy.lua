@@ -1,3 +1,5 @@
+require 'boss'
+
 Enemy = {
     baseHealth = 3,
     speedMultiplier = 1.0,
@@ -34,62 +36,6 @@ Enemy = {
             attackSpeed = 1.2,
             sizeMultiplier = 1.5,
             healthMultiplier = 3
-        },
-        boss = {
-            color = {0.5, 0, 0.5}, 
-            speedBonus = 0.7,
-            goldMultiplier = 5.0,
-            xpMultiplier = 4.0,
-            attackSpeed = 0.5,
-            sizeMultiplier = 2.0,
-            specialAbility = function(self, dt)
-                if math.random() < 0.15 * dt then
-                    self.x = math.random(50, Game.screen.width-50)
-                    self.y = math.random(50, Game.screen.height-50)
-                end
-                if self.health < self.maxHealth * 0.3 then
-                    self.speed = self.speed * 1.2
-                end
-            end
-        },
-        swarmlord = {
-            color = {0.8, 0.8, 0},
-            speedBonus = 0.8,
-            goldMultiplier = 5.0,
-            xpMultiplier = 4.0,
-            attackSpeed = 0.6,
-            sizeMultiplier = 2.0,
-            specialAbility = function(self, dt)
-                self.summonTimer = (self.summonTimer or 4) - dt
-                if self.summonTimer <= 0 then
-                    for i = 1, 3 do
-                        local m = Enemy.createEnemy(math.random() < 0.7 and "normal" or "fast")
-                        m.health = 1
-                        m.gold = 0
-                        m.x = self.x + math.random(-75, 75)
-                        m.y = self.y + math.random(-75, 75)
-                        table.insert(Game.state.enemies, m)
-                    end
-                    self.summonTimer = 4
-                end
-            end
-        },
-        phasebeast = {
-            color = {0.4, 0.4, 0.9},
-            speedBonus = 1.1,
-            goldMultiplier = 5.0,
-            xpMultiplier = 4.0,
-            attackSpeed = 0.7,
-            sizeMultiplier = 2.2,
-            specialAbility = function(self, dt)
-                if math.random() < 0.25 * dt then
-                    Effects.spawnDamageEffect(self.x, self.y, 1.5, 0.5)
-                end
-                if math.random() < 0.3 * dt then
-                    self.x = self.x + math.random(-100, 100)
-                    self.y = self.y + math.random(-100, 100)
-                end
-            end
         }
     }
 }
@@ -100,10 +46,12 @@ function Enemy.spawn()
     
     if isBossWave then
         local bossTier = math.floor(wave / 5) + 1
-        local bossTypes = {"boss", "swarmlord", "phasebeast"}
+        local bossTypes = {"standard", "swarmlord", "phasebeast"}
         local bossType = bossTypes[(bossTier % #bossTypes) + 1]
-        local boss = Enemy.createBoss(bossTier, bossType)
-        table.insert(Game.state.enemies, boss)
+        local boss = Boss.create(bossTier, bossType)
+        if boss then
+            table.insert(Game.state.enemies, boss)
+        end
         return
     end
 
@@ -160,37 +108,8 @@ function Enemy.createEnemy(type)
         attackSpeed = config.attackSpeed,
         inMeleeRange = false,
         isBoss = false,
-        specialAbility = config.specialAbility,
         tier = 1
     }
-end
-
-function Enemy.createBoss(tier, bossType)
-    bossType = bossType or "boss"
-    local boss = Enemy.createEnemy(bossType)
-    boss.isBoss = true
-    boss.tier = tier
-
-    boss.size = 25 * (1 + tier * 0.25) * Enemy.types[bossType].sizeMultiplier
-    boss.health = Enemy.baseHealth * 12 * tier
-    boss.maxHealth = boss.health
-    boss.gold = boss.gold * tier * 3
-    boss.xp = boss.xp * tier * 5
-    boss.speed = boss.speed * (0.95 ^ tier)
-
-    if tier >= 3 and bossType == "boss" then
-        boss.specialAbility = function(self, dt)
-            if math.random() < 0.15 * dt then
-                self.x = math.random(50, Game.screen.width-50)
-                self.y = math.random(50, Game.screen.height-50)
-            end
-            if self.health < self.maxHealth * 0.3 then
-                self.speed = self.speed * 1.15
-            end
-        end
-    end
-
-    return boss
 end
 
 function Enemy.updateMovement(dt)
@@ -247,19 +166,24 @@ function Enemy.drawAll()
             barHeight
         )
 
-        -- Enemy body
-        local color = Enemy.types[e.type].color
+        -- Enemy body color handling
+        local color
+        if e.isBoss then
+            -- Get color from Boss system
+            local bossConfig = Boss.types[e.type]
+            color = bossConfig and bossConfig.color or {1, 0, 1} -- fallback magenta
+        else
+            -- Get color from Enemy system
+            local enemyConfig = Enemy.types[e.type]
+            color = enemyConfig and enemyConfig.color or {1, 1, 0} -- fallback yellow
+        end
+
         love.graphics.setColor(color[1], color[2], color[3])
         love.graphics.rectangle("fill", e.x - e.size/2, e.y - e.size/2, e.size, e.size)
         
         -- Boss crown
         if e.isBoss then
-            love.graphics.setColor(1, 0.8, 0)
-            love.graphics.polygon("fill",
-                e.x, e.y - e.size,
-                e.x - 5, e.y - e.size + 10,
-                e.x + 5, e.y - e.size + 10
-            )
+            Boss.drawCrown(e.x, e.y, e.size)
         end
     end
 end
