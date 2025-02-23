@@ -1,45 +1,26 @@
-require 'effects'
-require 'projectile'
-require 'player'
-require 'enemy'
-require 'shop'
-require 'upgrades'
-require 'utils'
-require 'waves'
+require 'game'       -- Game state and core functionality
+require 'effects'    -- Visual effects system
+require 'projectile' -- Projectile logic
+require 'player'     -- Player controller
+require 'enemy'      -- Enemy behaviors
+require 'waves'      -- Wave progression system
+require 'upgrades'   -- Upgrade economy
+require 'utils'      -- Utility functions
+require 'ui'         -- User interface system
+
 
 function love.load()
     math.randomseed(os.time())
     
-    -- Get actual screen dimensions with scaling consideration
-    local pixelScale = 1
-    local screenWidth, screenHeight = love.graphics.getDimensions()
+    -- Initialize core systems
+    Game.init()
+    UI.init()
+    Player.init()
     
-    Game = {
-        scale = pixelScale,
-        screen = {
-            width = screenWidth / pixelScale,  -- Logical width
-            height = screenHeight / pixelScale, -- Logical height
-            pixelWidth = screenWidth,          -- Actual pixel dimensions
-            pixelHeight = screenHeight
-        },
-        state = {
-            player = Player,
-            enemies = {},
-            projectiles = {},
-            inShop = false,
-            spawnTimer = 0,
-            attackTimer = 0,
-            waveTransition = false,
-            speedMultiplier = 1.0  -- New speed control
-        }
-    }
-    
-    -- Initialize systems with proper scaling
-    Player.init(Game.screen.width, Game.screen.height)
-    Shop.init()
+    -- Start first wave
     Waves.startNextWave()
     
-    -- Set up mobile-friendly graphics
+    -- Configure graphics
     love.graphics.setLineStyle("rough")
     love.graphics.setDefaultFilter("nearest", "nearest")
     if Game.scale > 1 then
@@ -84,7 +65,7 @@ function love.draw()
     Effects.draw()
     
     -- UI Elements
-    Shop.draw()
+    UI.draw()
     Player.drawHealth()
     Player.drawDeathScreen()
     
@@ -103,13 +84,14 @@ function love.draw()
     end
 end
 
+-- Update the touch handler in main.lua
 function love.touchpressed(id, x, y)
     if Game.state.showDeathScreen then
         Player.init()
         Game.state.showDeathScreen = false
         return true
     end
-    Shop.handleTouch(id, x, y)
+    UI.handleTouch(x, y)  -- Pass only coordinates, not ID
 end
 
 -- Debugging
