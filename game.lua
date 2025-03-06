@@ -37,8 +37,8 @@ function Game.resetState()
         waveTransition = false,
         speedMultiplier = 1.0,
         showDeathScreen = false,
+        showRebirthScreen = false,
         bossDefeated = false,
-        currentWave = 1,
         player = {
             gold = 0,
             xp = 0,
@@ -70,9 +70,11 @@ function Game.saveState()
             xpToNextLevel = Player.xpToNextLevel
         },
         wave = Waves.currentWave,
-        upgrades = Upgrades.stats
+        upgrades = Upgrades.stats,
+        rebirth = Rebirth
     }
 end
+
 
 function Game.loadState(savedState)
     if savedState then
@@ -82,6 +84,7 @@ function Game.loadState(savedState)
         Player.xpToNextLevel = savedState.player.xpToNextLevel
         Waves.currentWave = savedState.wave
         Upgrades.stats = savedState.upgrades
+        Rebirth = savedState.rebirth or Rebirth
     end
 end
 
