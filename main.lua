@@ -1,3 +1,4 @@
+require 'rebirth'
 require 'game'       -- Game state and core functionality
 require 'effects'    -- Visual effects system
 require 'projectile' -- Projectile logic
@@ -17,8 +18,6 @@ function love.load()
     UI.init()
     Player.init()
     
-    -- Start first wave
-    Waves.startNextWave()
     
     -- Configure graphics
     love.graphics.setLineStyle("rough")
@@ -66,33 +65,30 @@ function love.draw()
     
     -- UI Elements
     UI.draw()
-    Player.drawHealth()
-    Player.drawDeathScreen()
     
-    -- Wave counter
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Wave: " .. Waves.currentWave, Game.screen.width - 150, 10)
     
-    -- Speed multiplier indicator
-    love.graphics.print("Speed: " .. string.format("%.1fx", Game.state.speedMultiplier), 
-        Game.screen.width - 150, 50)
     
-    -- Next wave countdown
-    if Waves.enemiesRemaining == 0 then
-        love.graphics.print("Next wave in: " .. math.ceil(Waves.waveTimer), 
-            Game.screen.width - 150, 30)
-    end
+
 end
 
--- Update the touch handler in main.lua
+
+-- main.lua
 function love.touchpressed(id, x, y)
-    if Game.state.showDeathScreen then
-        Player.init()
-        Game.state.showDeathScreen = false
-        return true
-    end
-    UI.handleTouch(x, y)  -- Pass only coordinates, not ID
+    local scaledX, scaledY = x/Game.scale, y/Game.scale
+    UI.handleTouch(scaledX, scaledY)
 end
+
+
+
+-- Update the touch handler in main.lua
+--function love.touchpressed(id, x, y)
+--    if Game.state.showDeathScreen then
+--        Player.init()
+--        Game.state.showDeathScreen = false
+--        return true
+--    end
+--    UI.handleTouch(x, y)  -- Pass only coordinates, not ID
+--end
 
 -- Debugging
 function love.keypressed(key)
