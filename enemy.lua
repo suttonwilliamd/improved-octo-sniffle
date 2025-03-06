@@ -91,6 +91,11 @@ end
 
 function Enemy.createEnemy(type)
     local config = Enemy.types[type]
+    
+    
+    
+
+    
     local baseSpeed = 40 * Enemy.speedMultiplier * config.speedBonus
     
     return {
@@ -108,14 +113,15 @@ function Enemy.createEnemy(type)
         attackSpeed = config.attackSpeed,
         inMeleeRange = false,
         isBoss = false,
-        tier = 1
+        tier = 1,
+        isDead = false
     }
 end
 
 function Enemy.updateMovement(dt)
     Game.state.enemies = utils.arrayRemove(Game.state.enemies, function(_, i)
         local e = Game.state.enemies[i]
-        if not e then return false end
+        if not e or e.isDead then return false end
         
         if e.specialAbility then
             e.specialAbility(e, dt)
@@ -134,12 +140,18 @@ function Enemy.updateMovement(dt)
             e.inMeleeRange = true
             e.attackTimer = e.attackTimer - dt
             if e.attackTimer <= 0 then
-                Player.health = Player.health - (e.isBoss and 2 or 1)
+                Player.takeDamage(e.isBoss and 2 or 1, e)
                 e.attackTimer = 1 / e.attackSpeed
             end
         end
 
-        return e.health > 0
+        if e.health <= 0 then
+            e.isDead = true -- Mark as dead
+            Enemy.onDeath(e)
+            return false
+        end
+
+        return true
     end)
 end
 
