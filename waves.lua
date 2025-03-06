@@ -40,13 +40,14 @@ local waveDefinitions = {
 }
 
 function Waves.getWaveMultipliers(wave)
-    local tier = math.floor((wave - 1) / 5)
+    local tier = math.floor((math.max(1, wave) - 1) / 5)  -- Ensure wave >=1 for tier calculation
+    local defIndex = math.max(1, math.min(wave, #waveDefinitions))  -- Critical fix
     return {
         health = math.pow(Waves.scaling.base.health, wave) * math.pow(Waves.scaling.tier.health, tier),
         speed = math.pow(Waves.scaling.base.speed, wave) * math.pow(Waves.scaling.tier.speed, tier),
         spawnRate = math.pow(Waves.scaling.base.spawnRate, wave),
         count = math.pow(Waves.scaling.base.count, math.max(0, wave - #waveDefinitions)),
-        elite = math.min(0.5, waveDefinitions[math.min(wave, #waveDefinitions)][5] + (tier * Waves.scaling.tier.elite))
+        elite = math.min(0.5, waveDefinitions[defIndex][5] + (tier * Waves.scaling.tier.elite))
     }
 end
 
@@ -65,6 +66,7 @@ function Waves.startNextWave()
         Waves.spawnRandomness = 0
     else
         -- Normal wave scaling
+        wave = math.max(1, wave)
         if wave <= #waveDefinitions then
             local def = waveDefinitions[wave]
             Waves.enemiesRemaining = def[1]
@@ -100,7 +102,6 @@ function Waves.update(dt)
         end
 
         if Waves.waveTimer <= 0 then
-            Game.state.inShop = true
             if Waves.currentWave % 5 == 0 then
                 Player.gold = Player.gold + 500 + (200 * math.floor(Waves.currentWave / 5))
             end
@@ -141,24 +142,85 @@ end
 
 function Waves.draw()
     if Waves.betweenWaves then
-        love.graphics.setColor(1, 1, 1)
-        local text = "Next Wave in: " .. math.ceil(Waves.waveTimer)
-        
-        if Waves.currentWave % 5 == 0 then
-            local tier = math.floor(Waves.currentWave / 5)
-            text = "TIER " .. tier .. " BOSS INCOMING!\n" .. text
-            love.graphics.setFont(love.graphics.newFont(24))
-        else
-            love.graphics.setFont(love.graphics.newFont(18))
-        end
+        local alpha = math.min(1, Waves.waveTimer * 0.5)
+        local baseY = Game.screen.height * 0.4  -- 40% from top (true center would be 0.5)
+        local textScale = math.max(1.0, Game.fontScale) * 1.5  -- Minimum scale of 1.0
 
-        love.graphics.printf(text, 0, Game.screen.height/2 - 30, Game.screen.width, "center")
-        
+        -- Text content
+        local text = Waves.currentWave % 5 == 0 and 
+            ("BOSS WAVE %d INCOMING!\n%d"):format(math.floor(Waves.currentWave/5)+1, math.ceil(Waves.waveTimer)) or 
+            "Next Wave: " .. math.ceil(Waves.waveTimer)
+
+        -- Font setup
+        local font = love.graphics.newFont(32 * textScale)
+        font:setWeight(700)
+        love.graphics.setFont(font)
+
+        -- Text measurements
+        local textWidth = font:getWidth(text)
+        local textHeight = font:getHeight() * 2  -- Account for line breaks
+        local maxWidth = Game.screen.width * 0.9  -- Prevent overflow
+        textWidth = math.min(textWidth, maxWidth)
+
+        -- Background panel (centered with constraints)
+        local padding = 30 * Game.uiScale
+        local bgWidth = textWidth + padding * 2
+        local bgHeight = textHeight + padding * 2
+        local bgX = (Game.screen.width - bgWidth) / 2
+        local bgY = baseY - padding
+
+        love.graphics.setColor(0, 0, 0, 0.8 * alpha)
+        utils.drawRoundedRect({
+            x = bgX,
+            y = bgY,
+            width = bgWidth,
+            height = bgHeight
+        }, 15 * Game.uiScale)
+
+        -- Text positioning (true vertical center)
+        local textY = bgY + (bgHeight - textHeight)/2 + padding/2
+
+        love.graphics.setColor(1, 0.4, 0.4, alpha)
+        love.graphics.printf(text, 
+            bgX + padding,  -- Left boundary
+            textY, 
+            textWidth,      -- Wrap width
+            "center",       -- Alignment
+            0,              -- Rotation
+            textScale       -- Scaling
+        )
+
+        -- Boss warning
         if Game.showBossWarning then
-            love.graphics.setColor(1, 0, 0, 0.8)
-            love.graphics.printf("!!! BOSS APPROACHING !!!", 
-                0, Game.screen.height/2 - 60, 
-                Game.screen.width, "center")
+            local pulse = 0.5 + math.abs(math.sin(Waves.bossWarningTimer * 15)) * 0.5
+            love.graphics.setColor(1, 0, 0, pulse * alpha)
+            love.graphics.setFont(love.graphics.newFont(48 * textScale))
+            love.graphics.printf("!!! DANGER !!!", 
+                0, 
+                bgY - 0.1 * Game.screen.height,  -- Position above main panel
+                Game.screen.width, 
+                "center"
+            )
         end
     end
+end
+
+function Waves.reset()
+    -- Reset wave progression
+    Waves.currentWave = 1
+    Waves.enemiesRemaining = 5
+    Waves.waveTimer = 5
+    Waves.spawnInterval = 2.0
+    Waves.spawnTimer = 0
+    Waves.spawnRandomness = 0.3
+    Waves.betweenWaves = true
+    Waves.bossWarningTimer = 0
+    Waves.eliteChance = 0
+    
+    -- Reset enemy scaling
+    Enemy.baseHealth = waveDefinitions[1][2]
+    Enemy.speedMultiplier = waveDefinitions[1][3]
+    
+    -- Clear any pending warnings
+    Game.showBossWarning = false
 end
