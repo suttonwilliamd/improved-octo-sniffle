@@ -17,19 +17,30 @@ Player = {
 }
 
 function Player.init()
+    
+    
+    
+    
+    
+    
+    
     -- Position and reset stats
     Player.x = Game.screen.width / 2
     Player.y = Game.screen.height / 2
+    Player.maxHealth = 100 * (Rebirth and Rebirth.multipliers.health or 1)
     Player.health = Player.maxHealth
     Player.isDead = false
     
     -- Initialize base stats for scaling
     Player.baseStats = {
-        attackDamage = Player.attackDamage,
-        attackSpeed = Player.attackSpeed,
-        critChance = Player.critChance,
-        defense = Player.defense,
-        regen = Player.regen
+        attackDamage = 1 * (Rebirth and Rebirth.multipliers.damage or 1),
+        attackSpeed = 1,
+        critChance = 0.1,
+        defense = 0,
+        regen = 0,
+        areaDamage = 0,
+        lifeSteal = 0,
+        thorns = 0.0
     }
     
     -- Persistent progression between runs
@@ -38,29 +49,44 @@ function Player.init()
     Player.xp = Player.xp or 0
     Player.xpToNextLevel = Player.xpToNextLevel or 100
     
-    -- Reset wave state
-    Waves.currentWave = 1
-    Waves.betweenWaves = true
+    Player.updateStats()  -- Set initial values
+    
     Game.state.enemies = {}
 end
 
-function Player.takeDamage(amount)
+function Player.takeDamage(amount, attacker)
     local mitigated = amount * (1 - Player.defense/100)
     Player.health = Player.health - mitigated
     Player.checkDeath()
+
+    -- Reflect thorns damage if applicable
+    if attacker and Player.thorns > 0 then
+        local thornsDamage = Player.thorns * 10
+        attacker.health = attacker.health - thornsDamage
+        Effects.spawnThornsEffect(attacker.x, attacker.y)
+        Effects.spawnDamageEffect(attacker.x, attacker.y, 0.5, math.floor(thornsDamage))
+    end
 end
+
+function Player.updateStats()
+    -- Calculate current stats based on base stats + level scaling
+    Player.attackDamage = Player.baseStats.attackDamage * (1 + Player.level * 0.1)
+    Player.critChance = Player.baseStats.critChance * (1 + Player.level * 0.01)
+    Player.attackSpeed = Player.baseStats.attackSpeed * (1 + Player.level * 0.05)
+    Player.defense = Player.baseStats.defense * (1 + Player.level * 0.02)
+    Player.regen = Player.baseStats.regen * (1 + Player.level * 0.03)
+    Player.areaDamage = (Player.baseStats.areaDamage or 0) * (1 + Player.level * 0.05)
+    Player.lifeSteal = (Player.baseStats.lifeSteal or 0) * (1 + Player.level * 0.03)
+    Player.thorns = (Player.baseStats.thorns or 0) * (Rebirth and Rebirth.multipliers.damage or 1)
+end
+
 
 function Player.levelUp()
     Player.level = Player.level + 1
     Player.xp = Player.xp - Player.xpToNextLevel
     Player.xpToNextLevel = math.floor(Player.xpToNextLevel * 1.5)
     
-    -- Scale stats based on base values
-    Player.attackDamage = Player.baseStats.attackDamage * (1 + Player.level * 0.1)
-    Player.attackSpeed = Player.baseStats.attackSpeed * (1 + Player.level * 0.05)
-    Player.defense = Player.baseStats.defense * (1 + Player.level * 0.02)
-    Player.regen = Player.baseStats.regen * (1 + Player.level * 0.03)
-    
+    Player.updateStats()
     print("Level Up! Reached level", Player.level)
 end
 
@@ -78,7 +104,7 @@ function Player.autoAttack(dt)
             local closestDistance = math.huge
             
             for _, e in ipairs(Game.state.enemies) do
-                if e.health > 0 and e.health > e.pendingDamage then -- Add health check
+                if e.health > 0 and e.health > e.pendingDamage then
                     local dx = Player.x - e.x
                     local dy = Player.y - e.y
                     local distance = math.sqrt(dx*dx + dy*dy)
@@ -93,7 +119,7 @@ function Player.autoAttack(dt)
             Player.target = nearestValidEnemy
         end
 
-        -- Fire only at valid, alive targets
+        -- Fire only at valid targets
         if Player.target and Player.target.health > 0 and Player.target.health > Player.target.pendingDamage then
             Projectile.create(Player.x, Player.y, Player.target)
         end
@@ -131,6 +157,7 @@ end
 
 function Player.checkDeath()
     if Player.health <= 0 and not Player.isDead then
+        Rebirth.souls = Rebirth.souls + Rebirth.calculateSoulGain()
         Player.isDead = true
         Game.state.showDeathScreen = true
     end
@@ -172,4 +199,26 @@ function isEnemyValid(enemy)
         end
     end
     return false
+end
+
+function Player.reset()
+    -- Reset position and vital stats
+    Player.x = Game.screen.width / 2
+    Player.y = Game.screen.height / 2
+    Player.health = Player.maxHealth
+    Player.isDead = false
+    
+    -- Reset progression system
+    Player.xp = 0
+    Player.xpToNextLevel = 100
+    
+    Player.updateStats()
+    
+    -- Clear any target lock
+    Player.target = nil
+    
+    -- Reset wave state
+    Waves.currentWave = 1
+    Waves.betweenWaves = true
+    Game.state.enemies = {}
 end
