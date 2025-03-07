@@ -8,15 +8,21 @@ require 'waves'      -- Wave progression system
 require 'upgrades'   -- Upgrade economy
 require 'utils'      -- Utility functions
 require 'ui'         -- User interface system
+require 'music'
 
 
 function love.load()
+    
+    
+    
+    
     math.randomseed(os.time())
     
     -- Initialize core systems
     Game.init()
     UI.init()
     Player.init()
+    MusicGenerator:init()
     
     
     -- Configure graphics
@@ -52,6 +58,9 @@ function love.update(dt)
             Waves.startNextWave()
         end
     end
+
+    MusicGenerator:update(dt)
+
 
     Effects.update(scaledDt)
 end
