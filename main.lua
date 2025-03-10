@@ -8,7 +8,8 @@ require 'waves'      -- Wave progression system
 require 'upgrades'   -- Upgrade economy
 require 'utils'      -- Utility functions
 require 'ui'         -- User interface system
-require 'music'
+require 'sfx'
+local MusicGenerator = require 'music'
 
 
 function love.load()
@@ -23,7 +24,11 @@ function love.load()
     UI.init()
     Player.init()
     MusicGenerator:init()
+    SFX.init()
     
+    
+    
+    --MusicGenerator:switchPattern("xbox_marijuana")
     
     -- Configure graphics
     love.graphics.setLineStyle("rough")
@@ -59,7 +64,7 @@ function love.update(dt)
         end
     end
 
-    MusicGenerator:update(dt)
+    --MusicGenerator:update(dt)
 
 
     Effects.update(scaledDt)

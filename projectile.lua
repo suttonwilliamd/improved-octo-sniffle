@@ -2,6 +2,7 @@ Projectile = {}
 
 function Projectile.create(x, y, target)
     -- Calculate damage upfront including crit chance
+    SFX.playShoot()
     local isCrit = math.random() < Player.critChance
     local damage = Player.attackDamage * (isCrit and 2 or 1)
     

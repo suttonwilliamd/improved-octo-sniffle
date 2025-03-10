@@ -67,7 +67,7 @@ Boss = {
 
 function Boss.create(tier, bossType)
     
-    MusicGenerator:switchPattern("boss_battle")
+    --MusicGenerator:switchPattern("boss_battle")
     
     local config = Boss.types[bossType]
     if not config then return nil end

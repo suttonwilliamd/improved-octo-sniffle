@@ -156,15 +156,12 @@ function Player.drawHealth()
 end
 
 function Player.checkDeath()
-    
-    
-    
     if Player.health <= 0 and not Player.isDead then
         MusicGenerator:switchPattern("cyber_arpeggio") -- Reset to default
-    end
         Rebirth.souls = Rebirth.souls + Rebirth.calculateSoulGain()
         Player.isDead = true
         Game.state.showDeathScreen = true
+    end
 end
 
 function Player.drawDeathScreen()
