@@ -6,6 +6,8 @@ function Projectile.create(x, y, target)
     local isCrit = math.random() < Player.critChance
     local damage = Player.attackDamage * (isCrit and 2 or 1)
     
+    
+    
     -- Initialize pending damage if needed and track incoming damage
     target.pendingDamage = (target.pendingDamage or 0) + damage
 
@@ -19,6 +21,8 @@ function Projectile.create(x, y, target)
         lifeSteal = damage * Player.lifeSteal,  -- Store for on-hit
         hasAppliedLifeSteal = false
     }
+    
+    
     
 
     -- Area Damage chance
@@ -61,7 +65,10 @@ function Projectile.updateAll(dt)
             Effects.spawnDamageNumber(p.target.x, p.target.y, p.damage, p.crit)
             
             if p.crit then
+                SFX.playCrit()
                 Effects.spawnCritEffect(p.target.x, p.target.y)
+                else
+                SFX.playHit()
             end
 
             -- Apply damage and update pending damage

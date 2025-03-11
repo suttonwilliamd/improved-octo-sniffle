@@ -419,7 +419,7 @@ end
 
 function UI.handleTouch(x, y)
     if Game.state.showDeathScreen then
-        -- Check Rebirth Chamber button
+        -- Death screen buttons
         if utils.pointInRect(x, y, {
             x = UI.buttons.death.rebirth.x,
             y = UI.buttons.death.rebirth.y,
@@ -431,7 +431,6 @@ function UI.handleTouch(x, y)
             return true
         end
 
-        -- Check New Run button
         if utils.pointInRect(x, y, {
             x = UI.buttons.death.restart.x,
             y = UI.buttons.death.restart.y,
@@ -443,63 +442,99 @@ function UI.handleTouch(x, y)
             Player.reset()
             return true
         end
+        return true
         
-        return true  -- Block other interactions while death screen is visible
+    elseif Game.state.showRebirthScreen then
+        -- Rebirth screen close button
+        local rebirthW = Game.screen.width * 0.9
+        local rebirthH = Game.screen.height * 0.8
+        local rebirthX = (Game.screen.width - rebirthW) * 0.5
+        local rebirthY = (Game.screen.height - rebirthH) * 0.5
         
-        
-        
-        elseif Game.state.showRebirthScreen then
-        -- Handle rebirth screen close button
-            local closeX = (Game.screen.width * 0.95) - UI.buttons.close.size
-            local closeY = (Game.screen.height * 0.1) + 15 * Game.uiScale
-            if utils.pointInRect(x, y, {
-                x = closeX,
-                y = closeY,
-                width = UI.buttons.close.size,
-                height = UI.buttons.close.size
-            }) then
-                Game.state.showRebirthScreen = false
-                Game.state.showDeathScreen = true
-                return true
-            end
-    
-            -- Handle rebirth upgrades
-            local rebirthW = Game.screen.width * 0.9
-            local btnWidth = rebirthW * 0.4
-            local btnHeight = 100 * Game.uiScale
-            local startY = (Game.screen.height * 0.5) + 150 * Game.uiScale
-    
-            for i, upgrade in ipairs(Rebirth.upgrades) do
-                local col = (i-1) % 2
-                local row = math.floor((i-1)/2)
-                local btnX = (Game.screen.width * 0.05) + 20 + (col * (btnWidth + 20))
-                local btnY = startY + (row * (btnHeight + 20))
-    
-                if utils.pointInRect(x, y, {
-                    x = btnX,
-                    y = btnY,
-                    width = btnWidth,
-                    height = btnHeight
-                }) and Rebirth.souls >= upgrade.cost then
-                    Rebirth.purchaseUpgrade(upgrade)
-                    return true
-                end
-            end
+        local closeX = rebirthX + rebirthW - UI.buttons.close.size - 15 * Game.uiScale
+        local closeY = rebirthY + 15 * Game.uiScale
+        if utils.pointInRect(x, y, {
+            x = closeX,
+            y = closeY,
+            width = UI.buttons.close.size,
+            height = UI.buttons.close.size
+        }) then
+            Game.state.showRebirthScreen = false
+            Game.state.showDeathScreen = true
             return true
         end
-        -- ... rest of existing handleTouch code ...
-        
-        
-        
 
-    -- Shop toggle button check
-    if not Game.state.inShop and utils.pointInRect(x, y, UI.buttons.main) then
-        Game.state.inShop = true
+        -- Rebirth upgrade buttons
+        local btnWidth = rebirthW * 0.4
+        local btnHeight = 100 * Game.uiScale
+        local startY = rebirthY + 150 * Game.uiScale
+
+        for i, upgrade in ipairs(Rebirth.upgrades) do
+            local col = (i-1) % 2
+            local row = math.floor((i-1)/2)
+            local btnX = rebirthX + 20 + (col * (btnWidth + 20))
+            local btnY = startY + (row * (btnHeight + 20))
+
+            if utils.pointInRect(x, y, {
+                x = btnX,
+                y = btnY,
+                width = btnWidth,
+                height = btnHeight
+            }) and Rebirth.souls >= upgrade.cost then
+                Rebirth.purchaseUpgrade(upgrade)
+                return true
+            end
+        end
         return true
-    end
 
-    -- Target selection logic
-    if not Game.state.inShop and not Game.state.showDeathScreen then
+    elseif Game.state.inShop then
+        -- Shop close button
+        local s = UI.buttons.shop
+        UI.updateShopLayout()
+        local closeX = s.x + s.w - UI.buttons.close.size - 15 * Game.uiScale
+        local closeY = s.y + 15 * Game.uiScale
+        if utils.pointInRect(x, y, {
+            x = closeX,
+            y = closeY,
+            width = UI.buttons.close.size,
+            height = UI.buttons.close.size
+        }) then
+            Game.state.inShop = false
+            return true
+        end
+
+        -- Shop upgrade buttons
+        local baseY = s.start_y
+        local rowSpacing = s.btn_height_scaled + 15 * Game.uiScale
+        
+        -- Column check helper
+        local function checkColumn(col, yPos, stat)
+            return utils.pointInRect(x, y, {
+                x = s.columns[col],
+                y = yPos,
+                width = s.btn_width,
+                height = s.btn_height_scaled
+            }) and Player.gold >= (Upgrades.stats[stat].currentCost or 0)
+        end
+
+        -- Check all columns
+        if checkColumn(1, baseY, "attackDamage") then Upgrades.purchaseStat("attackDamage") return true end
+        if checkColumn(1, baseY + rowSpacing, "defense") then Upgrades.purchaseStat("defense") return true end
+        if checkColumn(2, baseY, "areaDamage") then Upgrades.purchaseStat("areaDamage") return true end
+        if checkColumn(2, baseY + rowSpacing, "lifeSteal") then Upgrades.purchaseStat("lifeSteal") return true end
+        if checkColumn(3, baseY, "attackSpeed") then Upgrades.purchaseStat("attackSpeed") return true end
+        if checkColumn(3, baseY + rowSpacing, "gameSpeed") then Upgrades.purchaseStat("gameSpeed") return true end
+        if checkColumn(4, baseY, "regen") then Upgrades.purchaseStat("regen") return true end
+        if checkColumn(4, baseY + rowSpacing, "thorns") then Upgrades.purchaseStat("thorns") return true end
+
+    else
+        -- Regular gameplay click handling
+        if utils.pointInRect(x, y, UI.buttons.main) then
+            Game.state.inShop = true
+            return true
+        end
+
+        -- Target selection
         local searchRadius = 100 * Game.scale
         local closestEnemy = nil
         local closestDistance = searchRadius
@@ -518,79 +553,6 @@ function UI.handleTouch(x, y)
             return true
         end
     end
-
-    -- Shop interaction
-    if Game.state.inShop then
-    local s = UI.buttons.shop
-    UI.updateShopLayout()  -- Ensure layout is current
-    
-    -- Close button check
-    local closeX = s.x + s.w - UI.buttons.close.size - 15 * Game.uiScale
-    local closeY = s.y + 15 * Game.uiScale
-    if utils.pointInRect(x, y, {
-        x = closeX,
-        y = closeY,
-        width = UI.buttons.close.size,
-        height = UI.buttons.close.size
-    }) then
-        Game.state.inShop = false
-        return true
-    end
-
-    -- Column check helper function
-    local function checkColumn(colIndex, yPos, statName)
-        return utils.pointInRect(x, y, {
-            x = s.columns[colIndex],
-            y = yPos,
-            width = s.btn_width,
-            height = s.btn_height_scaled
-        }) and Player.gold >= Upgrades.stats[statName].currentCost
-    end
-
-    -- Check all upgrade buttons
-    local baseY = s.start_y
-    local rowSpacing = s.btn_height_scaled + 15 * Game.uiScale
-    
-    -- Column 1 (Core Stats)
-    if checkColumn(1, baseY, "attackDamage") then
-        Upgrades.purchaseStat("attackDamage")
-        return true
-    end
-    if checkColumn(1, baseY + rowSpacing, "defense") then
-        Upgrades.purchaseStat("defense")
-        return true
-    end
-
-    -- Column 2 (Special Abilities)
-    if checkColumn(2, baseY, "areaDamage") then
-        Upgrades.purchaseStat("areaDamage")
-        return true
-    end
-    if checkColumn(2, baseY + rowSpacing, "lifeSteal") then
-        Upgrades.purchaseStat("lifeSteal")
-        return true
-    end
-
-    -- Column 3 (Utility)
-    if checkColumn(3, baseY, "attackSpeed") then
-        Upgrades.purchaseStat("attackSpeed")
-        return true
-    end
-    if checkColumn(3, baseY + rowSpacing, "gameSpeed") then
-        Upgrades.purchaseStat("gameSpeed")
-        return true
-    end
-
-    -- Column 4 (Defensive)
-    if checkColumn(4, baseY, "regen") then
-        Upgrades.purchaseStat("regen")
-        return true
-    end
-    if checkColumn(4, baseY + rowSpacing, "thorns") then
-        Upgrades.purchaseStat("thorns")
-        return true
-    end
-end
     
     return false
 end

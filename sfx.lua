@@ -45,68 +45,20 @@ end
 
 -- Updated Shooting Sound with Significant Variation
 function SFX.generateShoot()
-    -- Expanded variation parameters
-    local params = {
-        base_freq  = 0.28 + love.math.random() * 0.04,  -- Wider frequency range
-        sustain    = 0.15 + love.math.random() * 0.07,   -- 0.15-0.22s sustain
-        decay      = 0.04 + love.math.random() * 0.04,   -- 0.04-0.08s decay
-        hpf_freq   = 0.08 + love.math.random() * 0.04,   -- 0.08-0.12s filter
-        duty       = 0.9 + love.math.random() * 0.2,     -- 90-110% duty cycle
-        freq_ramp  = love.math.random() * 0.2 - 0.1,     -- -0.1 to +0.1 freq ramp
-        intensity  = 0.2 + love.math.random() * 0.1,     -- 20-30% intensity
-        vibrato    = love.math.random() * 0.05           -- 0-5% vibrato
-    }
-
-    local total_duration = params.sustain + params.decay
+    local duration = 0.15  -- very short burst
     local sampleRate = 44100
-    local samples = math.ceil(total_duration * sampleRate)
+    local samples = math.ceil(duration * sampleRate)
     local data = love.sound.newSoundData(samples, sampleRate, 16, 1)
-
-    -- Convert normalized frequency to actual frequency
-    local base_freq = (params.base_freq ^ 2) * 20000  -- ~1568-2592Hz
     
-    -- High-pass filter variables
-    local rc = 1.0 / (2 * math.pi * (params.hpf_freq ^ 2) * 20000)
-    local alpha = rc / (rc + 1/sampleRate)
-    local prev_input = 0
-    local prev_output = 0
-
-    -- Vibrato variables
-    local vib_phase = love.math.random() * math.pi * 2
-    local vib_speed = 15 + love.math.random() * 10  -- 15-25Hz vibrato speed
-
     for i = 0, samples-1 do
         local t = i / sampleRate
-        
-        -- Frequency modulation
-        local freq = base_freq * (1 + params.freq_ramp * t)
-        freq = freq * (1 + math.sin(vib_phase + t * vib_speed * math.pi * 2) * params.vibrato)
-        
-        -- Square wave with variable duty cycle
-        local phase = t * freq % 1
-        local value = phase < params.duty and params.intensity or -params.intensity
-        
-        -- Envelope shape (attack 0 -> sustain -> decay)
-        local env
-        if t < params.sustain then
-            env = 1.0
-        else
-            local decay_t = t - params.sustain
-            env = math.max(1.0 - decay_t / params.decay, 0)
-            env = env ^ (0.5 + love.math.random() * 1.5)  -- Vary decay curve
-        end
-
-        -- Apply envelope
-        value = value * env
-
-        -- Apply high-pass filter
-        local filtered = alpha * (prev_output + value - prev_input)
-        prev_input = value
-        prev_output = filtered
-
-        data:setSample(i, filtered * (0.9 + love.math.random() * 0.2))  -- Add noise
+        -- White noise sample
+        local noise = love.math.random() * 2 - 1
+        -- Rapid decay envelope
+        local env = 1 - (t / duration)
+        data:setSample(i, noise * env * 0.5)
     end
-
+    
     return data
 end
 

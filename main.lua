@@ -1,6 +1,7 @@
 require 'rebirth'
 require 'game'       -- Game state and core functionality
 require 'effects'    -- Visual effects system
+require 'particles'
 require 'projectile' -- Projectile logic
 require 'player'     -- Player controller
 require 'enemy'      -- Enemy behaviors
@@ -22,6 +23,7 @@ function love.load()
     -- Initialize core systems
     Game.init()
     UI.init()
+    Particles.init()
     Player.init()
     MusicGenerator:init()
     SFX.init()
@@ -54,6 +56,7 @@ function love.update(dt)
     if not Game.state.inShop and not Player.isDead then
         Waves.update(scaledDt)
         Enemy.updateMovement(scaledDt)
+        Particles.update(scaledDt)
         Player.autoAttack(scaledDt)
         Projectile.updateAll(scaledDt)
 
@@ -72,6 +75,7 @@ end
 
 function love.draw()
     -- Main game rendering
+    Particles.draw()
     Player.draw()
     Enemy.drawAll()
     Projectile.drawAll()
